@@ -1,0 +1,119 @@
+---
+title: "Clustering and annotating 2,700 PBMCs: a single-cell RNA-seq workflow, with a check on how stable the clusters are"
+author: "Antoine Haddad"
+date: today
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.2cm
+    fontsize: 10.5pt
+    number-sections: true
+    colorlinks: true
+    fig-pos: "H"
+execute:
+  echo: false
+  warning: false
+  message: false
+bibliography: references.bib
+csl: apa.csl
+---
+
+```{r setup}
+suppressPackageStartupMessages({library(jsonlite); library(knitr)})
+r <- fromJSON("../results.json", simplifyVector = FALSE)
+n <- function(x) format(x, big.mark = ",")
+tab_ct <- as.data.frame(unlist(r$cells_per_type)); names(tab_ct) <- "Cells"
+```
+
+# Summary
+
+I analysed the public 10x Genomics PBMC 3k dataset (`r n(r$n_cells_raw)` droplets, `r n(r$n_genes_raw)` genes) in Python with Scanpy [@wolf2018], following the pre-processing recommendations of @luecken2019 and clustering with the Leiden algorithm [@traag2019]. After quality control `r n(r$n_cells)` cells remain. Leiden clustering at resolution 0.5 gives `r r$clusters_by_resolution[["0.5"]]` clusters, which I annotated as `r length(unique(unlist(r$cluster_assignment)))` cell types from canonical marker genes: CD4 T, CD8 T, NK, B, CD14 and CD16 (FCGR3A) monocytes, and dendritic cells. My clusters agree moderately with the Scanpy tutorial's own Louvain clusters for the same cells (adjusted Rand index `r r$ari_vs_tutorial_louvain`; the tutorial labels are a reference, not ground truth), and the per-type overlap is high for most types. When I re-cluster random 80% subsamples, the partition is moderately stable (mean ARI `r r$subsample_ari_mean` against the full-data clustering, SD `r r$subsample_ari_sd`). Two of my first annotation attempts were wrong and are reported under "Two annotation attempts that failed".
+
+# Question
+
+Can a standard workflow recover the main immune cell types in a small, well-known PBMC dataset, and how much do the clusters depend on choices the analyst makes: filtering rules, number of principal components, clustering resolution and random subsampling?
+
+# Data and methods
+
+**Data.** `scanpy.datasets.pbmc3k()`, the public 10x Genomics "3k PBMCs from a healthy donor" count matrix, obtained through Scanpy. No data were generated for this report.
+
+**Quality control.** I used adaptive (median-absolute-deviation) thresholds instead of fixed cut-offs: a cell is removed if its log total counts or log genes detected is more than 5 MADs from the median, or its mitochondrial fraction is more than 3 MADs above the median or above 20%. These choices follow @luecken2019. For comparison I also computed how many cells the tutorial's fixed thresholds (200 to 2,500 genes, under 5% mitochondrial) would remove.
+
+**Processing.** Library-size normalisation to 10,000 counts per cell, log(1 + x), 2,000 highly variable genes (Seurat flavour), scaling, PCA (50 components; the first `r r$n_pcs_used` used), a 15-nearest-neighbour graph, UMAP for display, and Leiden clustering at resolutions 0.3, 0.5, 0.8 and 1.2.
+
+**Annotation.** An ordered rule table on the fraction of a cluster's cells that express canonical markers (for example `MS4A1` for B cells, `FCER1A` for dendritic cells, `GNLY` for NK cells). The rules were written after inspecting marker fractions, so the annotation is not blind to the data. Per-cluster top genes (Wilcoxon rank-sum test) are reported as supporting evidence.
+
+**Stability.** I drew 20 random subsamples of 80% of the cells, re-ran the neighbour graph and Leiden clustering, and compared each result with the full-data clustering on the shared cells using the adjusted Rand index (ARI).
+
+**Software.** Scanpy 1.12.4, AnnData 0.13, python-igraph, scikit-learn, in a conda environment; random seed 0 throughout.
+
+# Results
+
+## Quality control
+
+```{r qc, fig.cap="Quality-control metrics per droplet. Rust points are removed by the adaptive thresholds.", out.width="100%"}
+include_graphics("../figures/qc.png")
+```
+
+The adaptive rules remove `r r$n_removed_qc` of `r n(r$n_cells_raw)` droplets, against `r r$n_removed_fixed_thresholds` for the tutorial's fixed thresholds; all `r r$n_removed_both` cells flagged by the fixed rules are also flagged by the adaptive ones. The adaptive rules are therefore considerably stricter on this dataset. I did not test whether the extra `r r$n_removed_qc - r$n_removed_both` removed cells are low quality or simply have unusually low counts of a genuine small cell population, which is a real risk when filtering on count depth.
+
+## Clusters and annotation
+
+```{r umap, fig.cap="UMAP of the `r n(r$n_cells)` retained cells coloured by annotated cell type (Leiden, resolution 0.5).", out.width="75%"}
+include_graphics("../figures/umap.png")
+```
+
+```{r dot, fig.cap="Canonical marker genes by annotated cell type. Dot size: fraction of cells expressing; shade: mean normalised expression.", out.width="85%"}
+include_graphics("../figures/dotplot.png")
+```
+
+```{r tab-ct}
+kable(tab_ct, caption = "Cells per annotated type.")
+```
+
+```{r tab-top}
+tg <- data.frame(Cluster = names(r$top_genes_by_cluster),
+                 Label = unlist(r$cluster_assignment)[names(r$top_genes_by_cluster)],
+                 `Top genes` = sapply(r$top_genes_by_cluster, paste, collapse = ", "), check.names = FALSE)
+kable(tg, row.names = FALSE, caption = "Top-ranked genes per Leiden cluster (Wilcoxon) and the label assigned.")
+```
+
+The two CD4 T clusters differ mainly in ribosomal and `CCR7` expression, which suggests a naive and a memory-like population, but I did not test that and keep them under one label. The label for cluster 3 (CD16 monocytes) rests on `FCGR3A` in `r round(100 * r$marker_fractions[["3"]][["FCGR3A"]])`% and `MS4A7` in `r round(100 * r$marker_fractions[["3"]][["MS4A7"]])`% of its cells together with top genes `LST1`, `AIF1` and `FCER1G`.
+
+## Agreement with the tutorial's labels
+
+```{r ct}
+ct <- do.call(rbind, lapply(names(r$crosstab), function(a) data.frame(Mine = a, Tutorial = names(r$crosstab[[a]]), Cells = unlist(r$crosstab[[a]]))))
+kable(ct[ct$Cells >= 5, ], row.names = FALSE, caption = "Overlap with the Scanpy tutorial's labels for the same cells (pairs with at least 5 cells).")
+```
+
+Agreement is high for B cells, dendritic cells, CD14 monocytes and NK cells (Table 3). The main differences are at boundaries: `r r$crosstab[["FCGR3A monocyte"]][["CD14+ Monocytes"]]` cells I call CD16 monocytes are CD14 monocytes in the tutorial, and `r r$crosstab[["CD8 T"]][["CD4 T cells"]]` of my CD8 T cells are CD4 T cells there. The tutorial also separates megakaryocytes (a few cells); at resolution 0.5 my clustering does not, so they sit inside the CD16 monocyte cluster. That is a limitation of the resolution I chose.
+
+## How stable are the clusters?
+
+```{r stab, fig.cap="Stability of the resolution-0.5 clustering under 80% subsampling (20 repeats).", out.width="55%"}
+include_graphics("../figures/stability.png")
+```
+
+The number of clusters changes with resolution (`r paste(names(r$clusters_by_resolution), unlist(r$clusters_by_resolution), sep = " = ", collapse = "; ")` clusters at resolutions 0.3, 0.5, 0.8, 1.2), while resolutions 0.5 and 0.8 give very similar partitions (ARI `r r[["ari_between_resolutions_0.5_vs_0.8"]]`). Subsampling gives a mean ARI of `r r$subsample_ari_mean`: the broad structure is reproducible, but individual cluster boundaries, particularly within the T-cell compartment, are not fixed. Cluster labels from a single run should not be treated as exact.
+
+## Two annotation attempts that failed
+
+1. **Z-scoring cluster means** of marker genes across clusters labelled the CD16 monocyte cluster (`r r$cells_per_type[["FCGR3A monocyte"]]` cells) as megakaryocytes, on a margin of 0.2 and with only 9% of its cells expressing `PPBP`. Megakaryocytes are rare in PBMCs, so the label was implausible; the z-scoring was amplifying differences in barely expressed genes.
+2. **An argmax over marker-panel scores** labelled the CD8 T cluster as NK cells, because `NKG7` is high in both, while `CD8A` and `CD8B` are poorly detected in this dataset.
+
+I replaced both with the rule table above and added an assertion that fails if any cluster matches zero or more than one rule; that assertion caught a CD4/CD8 overlap on the next run. Because the rules were written after seeing the data, the annotation is a defensible expert labelling, not an independent test.
+
+# Limitations
+
+- **One donor, one sample.** Nothing here speaks to between-individual variation or batch effects, which dominate real studies.
+- **Annotation is manual.** An automated reference-based method (for example a classifier trained on a labelled atlas) would be more reproducible; I did not run one.
+- **Several choices were fixed, not tuned**: 15 PCs, 15 neighbours, 2,000 variable genes. I did not test sensitivity to them beyond clustering resolution and subsampling.
+- **Rare populations** (megakaryocytes) are lost at the chosen resolution, and the stricter adaptive QC may remove some genuine low-count cells.
+- **Reference labels are not ground truth.** The tutorial's labels came from a similar workflow on largely the same data.
+
+# Provenance and reproducibility
+
+The data are public. All code is in `src/analysis.py`; every number and figure in this report comes from running it (`results.json`). The analysis and report were written and run with the assistance of Claude Code (Anthropic); I am responsible for checking and understanding the results. No part derives from university coursework or assessed material.
+
+# References

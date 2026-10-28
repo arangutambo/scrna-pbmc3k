@@ -1,0 +1,250 @@
+{
+  "n_cells_raw": 2700,
+  "n_genes_raw": 32738,
+  "n_removed_qc": 266,
+  "n_removed_fixed_thresholds": 62,
+  "n_removed_both": 62,
+  "n_cells": 2434,
+  "n_genes": 13479,
+  "pc_var_first10_pct": 7.0,
+  "n_pcs_used": 15,
+  "clusters_by_resolution": {
+    "0.3": 5,
+    "0.5": 8,
+    "0.8": 8,
+    "1.2": 10
+  },
+  "chosen_resolution": 0.5,
+  "subsample_ari_mean": 0.749,
+  "subsample_ari_sd": 0.077,
+  "ari_between_resolutions_0.5_vs_0.8": 0.821,
+  "cluster_assignment": {
+    "0": "CD4 T",
+    "1": "CD4 T",
+    "2": "CD8 T",
+    "3": "FCGR3A monocyte",
+    "4": "NK",
+    "5": "B",
+    "6": "CD14 monocyte",
+    "7": "Dendritic"
+  },
+  "marker_fractions": {
+    "0": {
+      "MS4A1": 0.05,
+      "FCER1A": 0.01,
+      "FCGR3A": 0.06,
+      "MS4A7": 0.02,
+      "CD14": 0.02,
+      "LYZ": 0.53,
+      "GNLY": 0.12,
+      "CD3E": 0.8,
+      "CD8A": 0.07,
+      "IL7R": 0.74,
+      "PPBP": 0.02
+    },
+    "1": {
+      "MS4A1": 0.05,
+      "FCER1A": 0.01,
+      "FCGR3A": 0.03,
+      "MS4A7": 0.02,
+      "CD14": 0.02,
+      "LYZ": 0.48,
+      "GNLY": 0.08,
+      "CD3E": 0.75,
+      "CD8A": 0.15,
+      "IL7R": 0.58,
+      "PPBP": 0.01
+    },
+    "2": {
+      "MS4A1": 0.04,
+      "FCER1A": 0.01,
+      "FCGR3A": 0.25,
+      "MS4A7": 0.01,
+      "CD14": 0.01,
+      "LYZ": 0.42,
+      "GNLY": 0.31,
+      "CD3E": 0.72,
+      "CD8A": 0.48,
+      "IL7R": 0.44,
+      "PPBP": 0.01
+    },
+    "3": {
+      "MS4A1": 0.09,
+      "FCER1A": 0.0,
+      "FCGR3A": 0.86,
+      "MS4A7": 0.74,
+      "CD14": 0.26,
+      "LYZ": 0.98,
+      "GNLY": 0.15,
+      "CD3E": 0.13,
+      "CD8A": 0.03,
+      "IL7R": 0.14,
+      "PPBP": 0.09
+    },
+    "4": {
+      "MS4A1": 0.05,
+      "FCER1A": 0.02,
+      "FCGR3A": 0.89,
+      "MS4A7": 0.01,
+      "CD14": 0.01,
+      "LYZ": 0.43,
+      "GNLY": 0.97,
+      "CD3E": 0.37,
+      "CD8A": 0.08,
+      "IL7R": 0.12,
+      "PPBP": 0.0
+    },
+    "5": {
+      "MS4A1": 0.87,
+      "FCER1A": 0.0,
+      "FCGR3A": 0.04,
+      "MS4A7": 0.05,
+      "CD14": 0.0,
+      "LYZ": 0.43,
+      "GNLY": 0.09,
+      "CD3E": 0.11,
+      "CD8A": 0.03,
+      "IL7R": 0.12,
+      "PPBP": 0.02
+    },
+    "6": {
+      "MS4A1": 0.05,
+      "FCER1A": 0.01,
+      "FCGR3A": 0.09,
+      "MS4A7": 0.24,
+      "CD14": 0.69,
+      "LYZ": 1.0,
+      "GNLY": 0.13,
+      "CD3E": 0.1,
+      "CD8A": 0.02,
+      "IL7R": 0.13,
+      "PPBP": 0.05
+    },
+    "7": {
+      "MS4A1": 0.11,
+      "FCER1A": 0.93,
+      "FCGR3A": 0.15,
+      "MS4A7": 0.19,
+      "CD14": 0.3,
+      "LYZ": 0.96,
+      "GNLY": 0.26,
+      "CD3E": 0.15,
+      "CD8A": 0.04,
+      "IL7R": 0.33,
+      "PPBP": 0.04
+    }
+  },
+  "top_genes_by_cluster": {
+    "0": [
+      "LTB",
+      "IL32",
+      "IL7R",
+      "TPT1",
+      "JUNB",
+      "RPS27A"
+    ],
+    "1": [
+      "RPL21",
+      "RPS3A",
+      "RPL13",
+      "MALAT1",
+      "RPS27A",
+      "RPS4X"
+    ],
+    "2": [
+      "CCL5",
+      "NKG7",
+      "CST7",
+      "B2M",
+      "GZMA",
+      "CTSW"
+    ],
+    "3": [
+      "LST1",
+      "COTL1",
+      "AIF1",
+      "FCER1G",
+      "FTH1",
+      "SAT1"
+    ],
+    "4": [
+      "NKG7",
+      "GZMB",
+      "PRF1",
+      "GNLY",
+      "CTSW",
+      "GZMA"
+    ],
+    "5": [
+      "CD74",
+      "CD79A",
+      "HLA-DRA",
+      "CD79B",
+      "HLA-DPB1",
+      "MS4A1"
+    ],
+    "6": [
+      "S100A9",
+      "LYZ",
+      "S100A8",
+      "TYROBP",
+      "FCN1",
+      "LGALS2"
+    ],
+    "7": [
+      "FCER1A",
+      "HLA-DPB1",
+      "HLA-DPA1",
+      "HLA-DRA",
+      "CST3",
+      "HLA-DRB1"
+    ]
+  },
+  "cells_per_type": {
+    "CD4 T": 1091,
+    "CD14 monocyte": 377,
+    "B": 314,
+    "CD8 T": 290,
+    "FCGR3A monocyte": 201,
+    "NK": 134,
+    "Dendritic": 27
+  },
+  "n_cells_in_reference": 2434,
+  "ari_vs_tutorial_louvain": 0.613,
+  "crosstab": {
+    "B": {
+      "B cells": 312,
+      "CD4 T cells": 1,
+      "CD8 T cells": 1
+    },
+    "CD14 monocyte": {
+      "CD14+ Monocytes": 374,
+      "CD4 T cells": 1,
+      "Dendritic cells": 2
+    },
+    "CD4 T": {
+      "B cells": 1,
+      "CD4 T cells": 1041,
+      "CD8 T cells": 49
+    },
+    "CD8 T": {
+      "CD4 T cells": 39,
+      "CD8 T cells": 235,
+      "NK cells": 16
+    },
+    "Dendritic": {
+      "Dendritic cells": 27
+    },
+    "FCGR3A monocyte": {
+      "B cells": 1,
+      "CD14+ Monocytes": 54,
+      "CD4 T cells": 3,
+      "FCGR3A+ Monocytes": 139,
+      "Megakaryocytes": 4
+    },
+    "NK": {
+      "CD8 T cells": 2,
+      "NK cells": 132
+    }
+  }
+}
