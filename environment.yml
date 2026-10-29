@@ -1,0 +1,17 @@
+# Environment this analysis was run in. The report quotes these versions, so pin
+# them: Leiden clustering and the HVG selection can shift between Scanpy releases.
+name: scrna-pbmc3k
+channels: [conda-forge, bioconda]
+dependencies:
+  - python=3.12
+  - scanpy=1.12.4
+  - anndata=0.13
+  - leidenalg
+  - python-igraph
+  - scikit-learn
+  - matplotlib
+  - pandas
+  - pip
+  - pip:
+      # reference-based annotation, used as an independent check on the rule table
+      - celltypist

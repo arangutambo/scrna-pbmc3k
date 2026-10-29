@@ -1,7 +1,8 @@
 """PBMC 3k single-cell RNA-seq: QC, clustering, annotation and a stability check.
 
 Public data (10x Genomics PBMC 3k, via scanpy). Run:
-    micromamba run -n binf-7000-2026-sc python src/analysis.py
+    micromamba create -y -f environment.yml
+    micromamba run -n scrna-pbmc3k python src/analysis.py
 Writes figures/*.png and results.json (every number quoted in the report comes from there).
 """
 import json
@@ -125,6 +126,36 @@ res["n_cells_in_reference"] = int(len(common))
 res["ari_vs_tutorial_louvain"] = round(float(adjusted_rand_score(ref.obs.loc[common, "louvain"].astype(str), ad.obs.loc[common, CHOSEN].astype(str))), 3)
 ct = pd.crosstab(ad.obs.loc[common, "cell_type"].astype(str), ref.obs.loc[common, "louvain"].astype(str))
 res["crosstab"] = {r: {c: int(v) for c, v in row.items() if v > 0} for r, row in ct.iterrows()}
+
+# ---- independent check: a classifier trained on a labelled atlas ----
+# The rule table above was written after looking at marker fractions, so it is an
+# expert labelling, not a test. CellTypist is trained on external annotated data and
+# never sees this dataset's labels, so it can disagree. No mapping is imposed between
+# its label set and mine: the comparison is each cluster's dominant CellTypist label
+# (which a reader can judge) plus a mapping-free ARI between the two partitions.
+import celltypist
+res["celltypist_model"] = "Immune_All_Low.pkl"
+celltypist.models.download_models(force_update=False, model=[res["celltypist_model"]])
+pred = celltypist.annotate(adr, model=res["celltypist_model"], majority_voting=False)
+ct_lab = pred.predicted_labels["predicted_labels"].astype(str)
+ct_lab.index = adr.obs_names
+ct_lab = ct_lab.loc[ad.obs_names]
+res["celltypist_version"] = str(celltypist.__version__)
+res["celltypist_n_labels_used"] = int(ct_lab.nunique())
+res["celltypist_ari_vs_rules"] = round(float(adjusted_rand_score(ad.obs["cell_type"].astype(str), ct_lab)), 3)
+res["celltypist_ari_vs_clusters"] = round(float(adjusted_rand_score(ad.obs[CHOSEN].astype(str), ct_lab)), 3)
+by_cluster = {}
+for k in ad.obs[CHOSEN].cat.categories:
+    m = (ad.obs[CHOSEN] == k).values
+    vc = ct_lab[m].value_counts()
+    by_cluster[str(k)] = {"my_label": assign[k], "celltypist_top": str(vc.index[0]),
+                          "share": round(float(vc.iloc[0] / m.sum()), 2),
+                          "celltypist_second": str(vc.index[1]) if len(vc) > 1 else None,
+                          "n_cells": int(m.sum())}
+res["celltypist_by_cluster"] = by_cluster
+# agreement at the level my labels are defined at: does each of my clusters' dominant
+# CellTypist label name the same broad population? recorded, not scored automatically.
+ad.obs["celltypist"] = pd.Categorical(ct_lab)
 
 # ---- figures ----
 pal = {"CD4 T": BROWN, "CD8 T": "#B8923A", "NK": RUST, "B": GREEN, "CD14 monocyte": "#7A8C9E", "FCGR3A monocyte": "#3f5566", "Dendritic": "#9a6b8a", "Megakaryocyte": "#2A2521"}
