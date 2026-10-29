@@ -246,5 +246,68 @@
       "CD8 T cells": 2,
       "NK cells": 132
     }
+  },
+  "celltypist_model": "Immune_All_Low.pkl",
+  "celltypist_version": "1.7.1",
+  "celltypist_n_labels_used": 40,
+  "celltypist_ari_vs_rules": 0.504,
+  "celltypist_ari_vs_clusters": 0.487,
+  "celltypist_by_cluster": {
+    "0": {
+      "my_label": "CD4 T",
+      "celltypist_top": "Tcm/Naive helper T cells",
+      "share": 0.49,
+      "celltypist_second": "Tem/Effector helper T cells",
+      "n_cells": 673
+    },
+    "1": {
+      "my_label": "CD4 T",
+      "celltypist_top": "Tcm/Naive helper T cells",
+      "share": 0.63,
+      "celltypist_second": "Tcm/Naive cytotoxic T cells",
+      "n_cells": 418
+    },
+    "2": {
+      "my_label": "CD8 T",
+      "celltypist_top": "Tem/Trm cytotoxic T cells",
+      "share": 0.31,
+      "celltypist_second": "MAIT cells",
+      "n_cells": 290
+    },
+    "3": {
+      "my_label": "FCGR3A monocyte",
+      "celltypist_top": "Non-classical monocytes",
+      "share": 0.89,
+      "celltypist_second": "Classical monocytes",
+      "n_cells": 201
+    },
+    "4": {
+      "my_label": "NK",
+      "celltypist_top": "CD16+ NK cells",
+      "share": 0.96,
+      "celltypist_second": "Tem/Temra cytotoxic T cells",
+      "n_cells": 134
+    },
+    "5": {
+      "my_label": "B",
+      "celltypist_top": "B cells",
+      "share": 0.95,
+      "celltypist_second": "Naive B cells",
+      "n_cells": 314
+    },
+    "6": {
+      "my_label": "CD14 monocyte",
+      "celltypist_top": "Classical monocytes",
+      "share": 0.87,
+      "celltypist_second": "Non-classical monocytes",
+      "n_cells": 377
+    },
+    "7": {
+      "my_label": "Dendritic",
+      "celltypist_top": "DC",
+      "share": 0.48,
+      "celltypist_second": "DC2",
+      "n_cells": 27
+    }
   }
 }

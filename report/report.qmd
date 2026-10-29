@@ -27,7 +27,7 @@ tab_ct <- as.data.frame(unlist(r$cells_per_type)); names(tab_ct) <- "Cells"
 
 # Summary
 
-I analysed the public 10x Genomics PBMC 3k dataset (`r n(r$n_cells_raw)` droplets, `r n(r$n_genes_raw)` genes) in Python with Scanpy [@wolf2018], following the pre-processing recommendations of @luecken2019 and clustering with the Leiden algorithm [@traag2019]. After quality control `r n(r$n_cells)` cells remain. Leiden clustering at resolution 0.5 gives `r r$clusters_by_resolution[["0.5"]]` clusters, which I annotated as `r length(unique(unlist(r$cluster_assignment)))` cell types from canonical marker genes: CD4 T, CD8 T, NK, B, CD14 and CD16 (FCGR3A) monocytes, and dendritic cells. My clusters agree moderately with the Scanpy tutorial's own Louvain clusters for the same cells (adjusted Rand index `r r$ari_vs_tutorial_louvain`; the tutorial labels are a reference, not ground truth), and the per-type overlap is high for most types. When I re-cluster random 80% subsamples, the partition is moderately stable (mean ARI `r r$subsample_ari_mean` against the full-data clustering, SD `r r$subsample_ari_sd`). Two of my first annotation attempts were wrong and are reported under "Two annotation attempts that failed".
+I analysed the public 10x Genomics PBMC 3k dataset (`r n(r$n_cells_raw)` droplets, `r n(r$n_genes_raw)` genes) in Python with Scanpy [@wolf2018], following the pre-processing recommendations of @luecken2019 and clustering with the Leiden algorithm [@traag2019]. After quality control `r n(r$n_cells)` cells remain. Leiden clustering at resolution 0.5 gives `r r$clusters_by_resolution[["0.5"]]` clusters, which I annotated as `r length(unique(unlist(r$cluster_assignment)))` cell types from canonical marker genes: CD4 T, CD8 T, NK, B, CD14 and CD16 (FCGR3A) monocytes, and dendritic cells. My clusters agree moderately with the Scanpy tutorial's own Louvain clusters for the same cells (adjusted Rand index `r r$ari_vs_tutorial_louvain`; the tutorial labels are a reference, not ground truth), and the per-type overlap is high for most types. When I re-cluster random 80% subsamples, the partition is moderately stable (mean ARI `r r$subsample_ari_mean` against the full-data clustering, SD `r r$subsample_ari_sd`). Two of my first annotation attempts were wrong and are reported under "Two annotation attempts that failed". An independent classifier trained on external data (CellTypist) names all `r length(r$celltypist_by_cluster)` clusters consistently with my rules, and is least confident on the CD8 T cluster -- the one an earlier attempt of mine mislabelled.
 
 # Question
 
@@ -95,19 +95,62 @@ Agreement is high for B cells, dendritic cells, CD14 monocytes and NK cells (Tab
 include_graphics("../figures/stability.png")
 ```
 
-The number of clusters changes with resolution (`r paste(names(r$clusters_by_resolution), unlist(r$clusters_by_resolution), sep = " = ", collapse = "; ")` clusters at resolutions 0.3, 0.5, 0.8, 1.2), while resolutions 0.5 and 0.8 give very similar partitions (ARI `r r[["ari_between_resolutions_0.5_vs_0.8"]]`). Subsampling gives a mean ARI of `r r$subsample_ari_mean`: the broad structure is reproducible, but individual cluster boundaries, particularly within the T-cell compartment, are not fixed. Cluster labels from a single run should not be treated as exact.
+The number of clusters changes with resolution (`r paste(names(r$clusters_by_resolution), unlist(r$clusters_by_resolution), sep = ": ", collapse = "; ")` clusters), while resolutions 0.5 and 0.8 give very similar partitions (ARI `r r[["ari_between_resolutions_0.5_vs_0.8"]]`). Subsampling gives a mean ARI of `r r$subsample_ari_mean`: the broad structure is reproducible, but individual cluster boundaries, particularly within the T-cell compartment, are not fixed. Cluster labels from a single run should not be treated as exact.
 
 ## Two annotation attempts that failed
 
-1. **Z-scoring cluster means** of marker genes across clusters labelled the CD16 monocyte cluster (`r r$cells_per_type[["FCGR3A monocyte"]]` cells) as megakaryocytes, on a margin of 0.2 and with only 9% of its cells expressing `PPBP`. Megakaryocytes are rare in PBMCs, so the label was implausible; the z-scoring was amplifying differences in barely expressed genes.
+1. **Z-scoring cluster means** of marker genes across clusters labelled the CD16 monocyte cluster (`r r$cells_per_type[["FCGR3A monocyte"]]` cells) as megakaryocytes, on a margin of 0.2 and with only `r round(100 * r$marker_fractions[["3"]][["PPBP"]])`% of its cells expressing `PPBP`. Megakaryocytes are rare in PBMCs, so the label was implausible; the z-scoring was amplifying differences in barely expressed genes.
 2. **An argmax over marker-panel scores** labelled the CD8 T cluster as NK cells, because `NKG7` is high in both, while `CD8A` and `CD8B` are poorly detected in this dataset.
 
-I replaced both with the rule table above and added an assertion that fails if any cluster matches zero or more than one rule; that assertion caught a CD4/CD8 overlap on the next run. Because the rules were written after seeing the data, the annotation is a defensible expert labelling, not an independent test.
+I replaced both with the rule table above and added an assertion that fails if any cluster matches zero or more than one rule; that assertion caught a CD4/CD8 overlap on the next run. Because the rules were written after seeing the data, the annotation is a defensible expert labelling rather than an independent test; the next section supplies one.
+
+## Does an independent classifier agree?
+
+The rule table was written after looking at marker fractions, so on its own it is an
+expert labelling rather than a test. CellTypist [@dominguez2022] is trained on external
+annotated immune data and never sees this dataset, so it can disagree. I ran its
+`r r$celltypist_model` model on the same normalised counts and compared, imposing no
+mapping between its label set and mine.
+
+```{r tab-celltypist}
+ct <- r$celltypist_by_cluster
+kable(data.frame(
+  Cluster = names(ct),
+  Cells = sapply(ct, function(x) x$n_cells),
+  `My rule label` = sapply(ct, function(x) x$my_label),
+  `CellTypist, most common` = sapply(ct, function(x) x$celltypist_top),
+  `Share` = sapply(ct, function(x) x$share),
+  `Next most common` = sapply(ct, function(x) ifelse(is.null(x$celltypist_second), "-", x$celltypist_second)),
+  check.names = FALSE), row.names = FALSE,
+  caption = "Each cluster's most common CellTypist label against the label my rules assigned. No mapping between the two label sets is imposed.")
+```
+
+**All `r length(ct)` clusters are named consistently.** Classical monocytes correspond to
+my CD14 cluster and non-classical to my CD16 cluster; cytotoxic T labels fall on the
+cluster I call CD8 T, helper T labels on the two I call CD4 T, and B, NK and dendritic
+agree directly (Table 4). That is the independent check the annotation previously lacked.
+
+**Its confidence varies a lot, and is lowest on the cluster this report already treated as
+the hardest.** The dominant label covers
+`r round(100 * min(sapply(ct, function(x) x$share)))`% to
+`r round(100 * max(sapply(ct, function(x) x$share)))`% of a cluster's cells. The two
+lowest are cluster `r names(which.min(sapply(ct, function(x) x$share)))`
+(`r ct[[names(which.min(sapply(ct, function(x) x$share)))]]$my_label`,
+`r round(100 * min(sapply(ct, function(x) x$share)))`%) and the dendritic cluster, which
+has only `r ct[["7"]]$n_cells` cells. The CD8 T cluster is the one an earlier attempt mislabelled as NK, and `CD8A` and `CD8B` are poorly detected here; CellTypist's hesitation on the same cluster is independent support for treating that boundary as soft. The dendritic cluster's low share is a different problem -- `r ct[["7"]]$n_cells` cells is too few to say much either way, and CellTypist splits them between a generic and a DC2 label.
+
+**The adjusted Rand index between the two labellings is `r r$celltypist_ari_vs_rules`, and
+that number should not be read as disagreement.** CellTypist used
+`r r$celltypist_n_labels_used` distinct labels on these cells against my
+`r length(unique(unlist(r$cluster_assignment)))`, so the two partitions differ mostly in
+granularity: it splits my CD4 T cells into central-memory, effector-memory and naive
+subsets that my marker panel cannot separate. The per-cluster table is the meaningful
+comparison; the ARI mostly measures the resolution gap.
 
 # Limitations
 
 - **One donor, one sample.** Nothing here speaks to between-individual variation or batch effects, which dominate real studies.
-- **Annotation is manual.** An automated reference-based method (for example a classifier trained on a labelled atlas) would be more reproducible; I did not run one.
+- **Annotation is manual**, though no longer unchecked: a classifier trained on a labelled atlas now agrees with every cluster label (Section 4.6). The rules themselves were still written after seeing the data, and CellTypist's own training data is not ground truth either.
 - **Several choices were fixed, not tuned**: 15 PCs, 15 neighbours, 2,000 variable genes. I did not test sensitivity to them beyond clustering resolution and subsampling.
 - **Rare populations** (megakaryocytes) are lost at the chosen resolution, and the stricter adaptive QC may remove some genuine low-count cells.
 - **Reference labels are not ground truth.** The tutorial's labels came from a similar workflow on largely the same data.
